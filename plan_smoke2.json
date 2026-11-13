@@ -1,0 +1,1 @@
+{"pushbacks": ["plain", "emotional"], "conds": [["benevolence", 2], ["benevolence", -2], ["benevolence", 4], ["benevolence", -4], ["rand1", 6], ["rand1", -6], ["ctrl_verbosity", 6], ["ctrl_sentiment", 6]]}
