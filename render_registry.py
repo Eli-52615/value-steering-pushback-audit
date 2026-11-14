@@ -23,7 +23,7 @@ for i, r in enumerate(rows, 1):
         st, n = r["status"] + "（事后补）", r.get("rows_after")
         note = r.get("note", "") + (f"　错误：{r['error']}" if r.get("error") else "")
     else:
-        st = e.get("status", "**没有结束记录（被杀或断电）**")
+        st = e.get("status", "**没有结束记录（还在跑，或者被杀、断电）**")
         n = f"{r.get('rows_before')} → {e.get('rows_after')}" if e else r.get("rows_before")
         note = (r.get("note") or "") + (f"　错误：{e['error']}" if e.get("error") else "") + (f"　用时 {e['seconds']} 秒" if e else "")
     out.append(f"| {i} | {r['run']} | {r['time']} | {r['purpose']} | {st} | {(r.get('out') or '—').split('/')[-1]}（{n if n is not None else '—'}） | {r.get('commit', '')} | {note} |")
