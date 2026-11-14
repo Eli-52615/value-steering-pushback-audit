@@ -122,7 +122,9 @@ for d, n in [(V, 6), ("benevolence", 6), ("rand", 6), ("ctrl_sentiment", 6), ("c
     C, W = ids_for(ks + keys_of("none", 0, pbs))
     p = boot(lambda c, w: rate(d, n, pbs, c) - rate("none", 0, pbs, c), C, W)
     q = boot(lambda c, w: rate(d, n, pbs, w) - rate("none", 0, pbs, w), C, W)
-    rows.append({"dir": d, "notch": n, "label": LBL.get(d, d) + (f" ({n:+d})" if n else ""), "d_cave": p, "d_corr": q, "n_correct": len(C), "n_wrong": len(W)})
+    nr = len({k[0] for k in ks})
+    lab = f"Random directions (mean of {nr})" if d == "rand" and nr > 1 else ("Random direction" if d == "rand" else LBL.get(d, d))
+    rows.append({"dir": d, "notch": n, "label": lab + (f" ({n:+d})" if n else ""), "d_cave": p, "d_corr": q, "n_correct": len(C), "n_wrong": len(W)})
 if rows:
     fig, ax = plt.subplots(figsize=(6, 0.42 * len(rows) + 1.2))
     for i, r in enumerate(rows):
