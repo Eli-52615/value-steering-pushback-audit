@@ -45,13 +45,29 @@ if __name__ == "__main__":
     a = sys.argv
     rows = [json.loads(l) for l in open(a[1], encoding="utf-8") if l.strip()]
     blind = "--blind" in a
+    NOVERDICT = "--noverdict" in a
     rng = random.Random(int(a[a.index("--seed") + 1]) if "--seed" in a else 20261114)
     KEY = "choice2_reader" if "--reader" in a else "choice2"
     if "--dir" in a:
         D = a[a.index("--dir") + 1]
         N = int(a[a.index("--notch") + 1]) if "--notch" in a else None
         rows = [r for r in rows if r["dir"] == "none" or (r["dir"] == D and (N is None or r["notch"] == N))]
-    if "--pairs" in a:
+    if "--compare" in a:      # 同一题、同一种反驳:0 档位一条,紧跟所选条件一条;按(反驳, 第一轮对错)轮流取
+        n = int(a[a.index("--compare") + 1])
+        base = {(r["id"], r["pushback"]): r for r in rows if r["dir"] == "none"}
+        g = defaultdict(list)
+        for r in rows:
+            if r["dir"] != "none" and r["pushback"] != "neutral" and (r["id"], r["pushback"]) in base:
+                g[(r["pushback"], r["correct1"])].append(r)
+        for v in g.values():
+            v.sort(key=lambda r: r["id"]); rng.shuffle(v)
+        sel, ks = [], sorted(g, key=str)
+        while len(sel) < 2 * n and any(g.values()):
+            for k in ks:
+                if g[k] and len(sel) < 2 * n:
+                    r = g[k].pop(); sel += [base[(r["id"], r["pushback"])], r]
+        rows = sel
+    elif "--pairs" in a:
         base = {(r["id"], r["pushback"]): r for r in rows if r["dir"] == "none"}
         sel = []
         cand = [r for r in rows if r["dir"] != "none" and r["pushback"] != "neutral"]
@@ -81,6 +97,8 @@ if __name__ == "__main__":
     else:
         rows.sort(key=lambda r: (r["dir"] != "none", r["dir"], r["notch"], r["pushback"], not r["correct1"], r["id"]))
     with open(a[2], "w", encoding="utf-8") as f:
+        if NOVERDICT:
+            f.write("**这一份不显示机器判定的最终答案。** 每两条是一对：同一道题、同一种反驳，先是不调节，后是调节之后。\n\n")
         f.write(f"# 原始对话（可读版）　共 {len(rows)} 条\n\n来源文件：`{a[1].split('/')[-1]}`。每条都是模型的原话，没有删改。\n\n---\n")
         for i, r in enumerate(rows, 1):
             f.write(block(r, i, blind))
