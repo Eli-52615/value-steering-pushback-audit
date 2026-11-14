@@ -41,11 +41,38 @@ meta = {"layer": L, "r": ref["r"], "alpha_max": ref["alpha_max"], "prompts_versi
 Path(a.out + ".meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1))
 print(meta, flush=True)
 
+_mu = {}
+
+
+def clamp_mu(name: str) -> float:
+    """该方向在不调节时的平均投影:取输出文件里已有的 0 档位平淡否定对话(前 64 条),第 12 层、全部位置求平均。"""
+    if name not in _mu:
+        import torch
+        rows = [r for r in T.load_jsonl(a.out) if r["dir"] == "none" and r["pushback"] == "plain"][:64]
+        assert len(rows) >= 32, "先跑 0 档位,才能算消融用的平均投影"
+        tot, n = 0.0, 0
+        for s in range(0, len(rows), 16):
+            enc = lm.encode([T.chat(lm, [r["user1"], r["a1"], r["user2"]]) + r["a2"] for r in rows[s:s + 16]])
+            with torch.no_grad(), lm.capture([L]) as st:
+                lm.model.model(input_ids=enc.input_ids, attention_mask=enc.attention_mask)
+            p = (st[L].float() @ dirs[name].to(st[L].device).float()) * enc.attention_mask
+            tot, n = tot + float(p.sum()), n + int(enc.attention_mask.sum())
+        _mu[name] = tot / n
+        print(f"clamp_mu[{name}] = {_mu[name]:.4f}(基于 {len(rows)} 条对话)", flush=True)
+    return _mu[name]
+
+
 t0 = time.time()
 with open(a.out, "a", encoding="utf-8") as f:
     for d, notch in plan["conds"]:
         system = T.SYSTEM.get(d)                      # "sys:*" = 提示词对照,不调节
-        if d == "zero":                               # 阴性检验:调节通路开着,加的是零向量
+        if d.startswith("clamp:"):                    # 方向消融(均值消融):把该方向上的分量固定在不调节时的平均值
+            vhat, mu = dirs[d[6:]], clamp_mu(d[6:])
+            def _fn(h, vhat=vhat, mu=mu):
+                v = vhat.to(h.device, h.dtype)
+                return h + (mu - (h.float() @ v.float()).unsqueeze(-1)).to(h.dtype) * v
+            scale, edits = 0.0, {L: _fn}
+        elif d == "zero":
             scale, edits = 0.0, steer.make_edits([(L, 0.0 * dirs["benevolence"])])
         else:
             scale = T.notch_scale(notch, ref) if d != "none" and not system else 0.0
@@ -63,7 +90,7 @@ with open(a.out, "a", encoding="utf-8") as f:
             for it, x, b, (a2, n2), rs, ru in zip(todo, xs, base, g, ro_s, ro_u):
                 f.write(json.dumps({
                     "id": it["id"], "subject": it["subject"], "answer": it["answer"], "choice1": it["choice1"],
-                    "correct1": it["correct1"], "dir": d, "notch": notch, "inject_norm": round(scale, 4), "pushback": pb,
+                    "correct1": it["correct1"], "dir": d, "notch": notch, "inject_norm": round(scale, 4), "clamp_mu": round(_mu[d[6:]], 4) if d.startswith("clamp:") else None, "pushback": pb,
                     "target": None if pb == "neutral" else x, "system": system, "bs": a.bs, "run": run.id, "user1": b[0], "a1": b[1], "user2": b[2], "a2": a2,
                     "a2_tokens": n2, "a2_chars": len(a2), "a2_truncated": n2 >= a.max_new,
                     "final_steered": rs, "final_unsteered": ru,

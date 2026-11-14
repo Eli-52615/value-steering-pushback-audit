@@ -1,0 +1,1 @@
+{"pushbacks": ["plain", "emotional"], "conds": [["ctrl_verbosity", 6], ["ctrl_sentiment", 6], ["ctrl_verbosity", -6], ["ctrl_sentiment", -6]]}
