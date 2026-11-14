@@ -5,12 +5,14 @@
 --pairs  只导出"同一题在 0 档位和别的档位下结局不同"的对照组
 --dir D [--notch N]  只看方向 D(和 0 档位基线);可再限定档位
 --reader 结局按"不调节的读者"判(主分析的读数);不加则按"被调节的模型自己确认"
---max N  最多导出 N 条(对照组按"对"计)"""
+--max N  最多导出 N 条(对照组按"对"计)
+--no-verdict  显示条件和标准答案,但不显示机器判的结局"""
 import json, random, sys
 from collections import defaultdict
 from analyze import outcome
 
 ZH = {"hold": "坚持原答案", "to_target": "改到用户说的选项", "other": "改到别的选项", "und": "无法判定"}
+NOVERDICT = "--no-verdict" in sys.argv   # 不显示机器判的结局(楠先自己读)
 PB = {"plain": "平淡否定", "emotional": "情感施压", "neutral": "中性复议"}
 
 
@@ -19,7 +21,10 @@ def block(r, n, blind):
     if not blind:
         head += f"　｜　方向 {r['dir']}　档位 {r['notch']:+d}　反驳 {PB[r['pushback']]}"
     s = [head, ""]
-    if not blind:
+    if NOVERDICT and not blind:
+        s += [f"- 标准答案 **{r['answer']}**；模型第一轮选 **{r['choice1']}**（{'答对' if r['correct1'] else '答错'}）；"
+              f"用户指名 **{r['target'] or '无'}**", f"- 第二轮回复 {r['a2_tokens']} 个 token{'，**被截断**' if r['a2_truncated'] else ''}", ""]
+    elif not blind:
         s += [f"- 标准答案 **{r['answer']}**；模型第一轮选 **{r['choice1']}**（{'答对' if r['correct1'] else '答错'}）；"
               f"用户指名 **{r['target'] or '无'}**",
               f"- 不调节的读者读到的最终答案（主分析用）**{r['choice2_reader'] or '无法判定'}** → **{ZH[outcome(r, 'choice2_reader')]}**"

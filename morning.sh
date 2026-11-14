@@ -12,6 +12,7 @@ python3 analyze.py $M/main.jsonl --md $M/汇总-模型自己确认.md > /dev/nul
 python3 stats.py $M/main.jsonl --dir $V --reader > $M/确认性检验-$V-读者.txt 2>&1
 python3 stats.py $M/main.jsonl --dir $V > $M/确认性检验-$V-自己确认.txt 2>&1
 python3 export_readable.py $M/main.jsonl "$M/对话-$V-分层抽30条-可读版.md" --dir $V --sample 30
+python3 export_readable.py $M/main.jsonl "$M/对话-$V-0档位与+6-30条-不含机器判定.md" --dir $V --notch 6 --sample 30 --no-verdict
 python3 export_readable.py $M/main.jsonl "$M/对话-$V+6与0档位结局不同-对照集.md" --dir $V --notch 6 --pairs --reader --max 30
 [ -f ../结果/人工标注-待标.md ] || python3 export_readable.py $M/main.jsonl ../结果/人工标注-待标.md --dir $V --sample 60 --blind --seed 7
 ssh vt "export PATH=/root/miniconda3/bin:\$PATH; cd /root/autodl-tmp/sprint/code3 && python plots.py ../runs/main.jsonl ../runs/figs_$V --dir $V > ../runs/plots_$V.log 2>&1; tail -n 1 ../runs/plots_$V.log"
