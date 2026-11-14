@@ -7,6 +7,7 @@ sys.path.insert(0, "/root/autodl-tmp/vt")
 from vt.config import load_cfg
 from vt.model import LM
 import trial as T
+from reglog import Run
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--config", default="/root/autodl-tmp/vt/configs/dev9b.yaml")
@@ -14,7 +15,10 @@ ap.add_argument("--items", required=True)
 ap.add_argument("--out", required=True)
 ap.add_argument("--max_new", type=int, default=160)
 ap.add_argument("--bs", type=int, default=48)
+ap.add_argument("--purpose", required=True)
+ap.add_argument("--note", default="")
 a = ap.parse_args()
+run = Run(a.purpose, a.out, a.note)
 
 items = T.load_jsonl(a.items)
 done = {r["id"] for r in T.load_jsonl(a.out)} if Path(a.out).exists() else set()
@@ -36,4 +40,5 @@ with open(a.out, "a", encoding="utf-8") as f:
                                 "prompts_version": T.PROMPTS_VERSION}, ensure_ascii=False) + "\n")
         f.flush()
         print(f"{s + len(ch)}/{len(items)}  {time.time() - t0:.0f}s", flush=True)
+run.done()
 print("DONE", flush=True)
