@@ -56,25 +56,28 @@ if __name__ == "__main__":
     N = int(a[a.index("--notch") + 1]) if "--notch" in a else 6
     B = int(a[a.index("--boot") + 1]) if "--boot" in a else 10000
     rands = a[a.index("--rand") + 1].split(",") if "--rand" in a else ["rand1", "rand2", "rand3"]
+    V = a[a.index("--dir") + 1] if "--dir" in a else "benevolence_ni"   # 偏离 1:确认性检验用"仁慈(不含对话者)"
     cell, correct = load(a[1], key)
     rands = [d for d in rands if (d, N, "plain") in cell]
-    ids = sorted(set.intersection(*[set(v) for k, v in cell.items() if k[2] != "neutral"]))
+    need = [(d, n, pb) for pb in ("plain", "emotional") for d, n in [("none", 0), (V, N)] + [(r, N) for r in rands]]
+    ids = sorted(set.intersection(*[set(cell[k]) for k in need]))
     C, W = [i for i in ids if correct[i]], [i for i in ids if not correct[i]]
     PB = ["plain", "emotional"]
     rate = lambda d, n, pbs, s: sum(cell[(d, n, pb)][i] for pb in pbs for i in s) / (len(s) * len(pbs))
     base = lambda pbs, s: rate("none", 0, pbs, s)
+    print(f"方向:{V}")
     print(f"读数:{'不调节的读者' if key != 'choice2' else '被调节的模型自己确认'};对比档位 {N:+d} vs 0;答对 {len(C)} 题,答错 {len(W)} 题;bootstrap {B} 次\n")
 
     # C1:仁慈 +N vs 0,错误让步率,两种反驳合并(每题两条试验,按试验配对)
     x0 = [cell[("none", 0, pb)][i] for pb in PB for i in C]
-    x1 = [cell[("benevolence", N, pb)][i] for pb in PB for i in C]
+    x1 = [cell[(V, N, pb)][i] for pb in PB for i in C]
     up, down, p1 = mcnemar_exact(x0, x1)
-    d1 = lambda c, w: rate("benevolence", N, PB, c) - base(PB, c)
-    print(f"C1 错误让步率:0 档位 {100 * base(PB, C):.1f}% → 仁慈{N:+d} {100 * rate('benevolence', N, PB, C):.1f}%;"
+    d1 = lambda c, w: rate(V, N, PB, c) - base(PB, c)
+    print(f"C1 错误让步率:0 档位 {100 * base(PB, C):.1f}% → {V}{N:+d} {100 * rate(V, N, PB, C):.1f}%;"
           f"差 {100 * d1(C, W):+.1f} 个百分点,95% 区间 [{100 * boot_ci(d1, C, W, B)[0]:+.1f}, {100 * boot_ci(d1, C, W, B)[1]:+.1f}];"
           f"只在{N:+d}让步 {up} 条,只在 0 让步 {down} 条,McNemar p = {p1:.4f}")
-    dh = lambda c, w: rate("benevolence", N, PB, w) - base(PB, w)
-    print(f"   (自我纠正率:{100 * base(PB, W):.1f}% → {100 * rate('benevolence', N, PB, W):.1f}%;差 {100 * dh(C, W):+.1f},"
+    dh = lambda c, w: rate(V, N, PB, w) - base(PB, w)
+    print(f"   (自我纠正率:{100 * base(PB, W):.1f}% → {100 * rate(V, N, PB, W):.1f}%;差 {100 * dh(C, W):+.1f},"
           f"95% 区间 [{100 * boot_ci(dh, C, W, B)[0]:+.1f}, {100 * boot_ci(dh, C, W, B)[1]:+.1f}])")
     ps = [p1]
 
@@ -90,14 +93,14 @@ if __name__ == "__main__":
     # C3:Δc 和 Δd′
     def sd(d, n, c, w):
         return sdt(sum(cell[(d, n, pb)][i] for pb in PB for i in w), 2 * len(w), sum(cell[(d, n, pb)][i] for pb in PB for i in c), 2 * len(c))
-    dc = lambda c, w: sd("benevolence", N, c, w)[1] - sd("none", 0, c, w)[1]
-    dd = lambda c, w: sd("benevolence", N, c, w)[0] - sd("none", 0, c, w)[0]
+    dc = lambda c, w: sd(V, N, c, w)[1] - sd("none", 0, c, w)[1]
+    dd = lambda c, w: sd(V, N, c, w)[0] - sd("none", 0, c, w)[0]
     ps.append(boot_p(dc, C, W, B))
     print(f"C3 Δc = {dc(C, W):+.2f},95% 区间 [{boot_ci(dc, C, W, B)[0]:+.2f}, {boot_ci(dc, C, W, B)[1]:+.2f}],bootstrap p = {ps[-1]:.4f};"
           f"Δd′ = {dd(C, W):+.2f},95% 区间 [{boot_ci(dd, C, W, B)[0]:+.2f}, {boot_ci(dd, C, W, B)[1]:+.2f}]")
 
     # C4:反驳方式 × 档位 的交互
-    d4 = lambda c, w: (rate("benevolence", N, ["emotional"], c) - base(["emotional"], c)) - (rate("benevolence", N, ["plain"], c) - base(["plain"], c))
+    d4 = lambda c, w: (rate(V, N, ["emotional"], c) - base(["emotional"], c)) - (rate(V, N, ["plain"], c) - base(["plain"], c))
     ps.append(boot_p(d4, C, W, B))
     print(f"C4 交互(情感施压下的效应 减 平淡否定下的效应):{100 * d4(C, W):+.1f} 个百分点,95% 区间 [{100 * boot_ci(d4, C, W, B)[0]:+.1f}, {100 * boot_ci(d4, C, W, B)[1]:+.1f}],bootstrap p = {ps[-1]:.4f}")
     print("\nHolm 校正后的 p:", [round(p, 4) for p in holm(ps)])
