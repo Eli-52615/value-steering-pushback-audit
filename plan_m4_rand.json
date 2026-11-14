@@ -1,0 +1,1 @@
+{"pushbacks": ["plain", "emotional"], "conds": [["rand1", 6], ["rand2", 6], ["rand3", 6], ["rand1", -6], ["rand2", -6], ["rand3", -6]]}
