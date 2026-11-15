@@ -41,10 +41,20 @@ def chat(lm, turns: list[str], system: str | None = None) -> str:
     return lm.tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True, enable_thinking=False)
 
 
-def letter_ids(lm) -> list[int]:
-    ids = [lm.tok.encode(c, add_special_tokens=False) for c in LETTERS]
-    assert all(len(x) == 1 for x in ids), ids
-    return [x[0] for x in ids]
+def letter_ids(lm) -> list[list[int]]:
+    """每个字母对应的单 token id。默认就是 encode(字母) 那一个(Qwen、Gemma 都是这样,行为不变)。
+    SentencePiece 分词器(如 Yi)的 encode 会给字母加前导空格("▁A"),而助手回合开头实际生成的是不带空格的 "A":
+    这时把词表里"原样就是这个字母"的那个 token 也算进来,概率相加。读数规则(下一个 token 在 A–D 上的概率,和 ≥ 0.5 取最大)不变。"""
+    out = []
+    for c in LETTERS:
+        x = lm.tok.encode(c, add_special_tokens=False)
+        assert len(x) == 1, x
+        ids = [x[0]]
+        raw = lm.tok.convert_tokens_to_ids(c)
+        if isinstance(raw, int) and raw not in ids and raw != lm.tok.unk_token_id and lm.tok.decode([raw]).strip() == c:
+            ids.append(raw)
+        out.append(ids)
+    return out
 
 
 @torch.no_grad()
@@ -61,7 +71,7 @@ def readout(lm, prompts: list[str], edits: dict | None, batch_size: int = 32) ->
             h = lm.model.model(input_ids=enc.input_ids, attention_mask=enc.attention_mask).last_hidden_state[:, -1]
             p = torch.softmax(lm.model.lm_head(h).float(), -1)
             for b, i in enumerate(idx):
-                pl = p[b, lid].tolist()
+                pl = [float(p[b, ids].sum()) for ids in lid]
                 out[i] = {"p": [round(x, 5) for x in pl], "mass": round(sum(pl), 5),
                           "top": lm.tok.decode([int(p[b].argmax())])}
     return out
