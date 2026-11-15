@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, "/root/autodl-tmp/vt")
 from vt.config import load_cfg
-from vt.model import LM
+from lm_compat import make_lm
 import trial as T
 from reglog import Run
 
@@ -23,7 +23,7 @@ run = Run(a.purpose, a.out, a.note)
 items = T.load_jsonl(a.items)
 done = {r["id"] for r in T.load_jsonl(a.out)} if Path(a.out).exists() else set()
 items = [it for it in items if it["id"] not in done]
-lm = LM(load_cfg(a.config))
+lm = make_lm(load_cfg(a.config))
 t0 = time.time()
 with open(a.out, "a", encoding="utf-8") as f:
     for s in range(0, len(items), 256):

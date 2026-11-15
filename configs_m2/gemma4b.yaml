@@ -1,0 +1,9 @@
+# 模型 2:Gemma-3-4b-it(指令版,bf16)。SAE 不用(不做体检),sae_* 只为满足配置格式。
+name: gemma4b
+model_path: /root/autodl-tmp/models/gemma-3-4b-it
+sae_dir: /dev/null
+n_layers: 34
+d_model: 2560
+sae_width: 0
+sae_k: 0
+work_dir: /root/autodl-tmp/vt_work/gemma4b

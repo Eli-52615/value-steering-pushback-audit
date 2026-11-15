@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, "/root/autodl-tmp/vt")
 from vt.config import load_cfg
-from vt.model import LM
+from lm_compat import make_lm
 from vt import steer
 from vt.dose import spec
 import trial as T
@@ -22,6 +22,7 @@ ap.add_argument("--max_new", type=int, default=1024)
 ap.add_argument("--bs", type=int, default=32)
 ap.add_argument("--purpose", required=True)   # 这次运行是为了什么(进运行登记)
 ap.add_argument("--note", default="")
+ap.add_argument("--ref", default="benevolence")   # 刻度参照的价值:模型 1 用原定义仁慈(签字时的设计);模型 2 用它自己的新仁慈
 a = ap.parse_args()
 run = Run(a.purpose, a.out, a.note)
 
@@ -32,12 +33,12 @@ r1 = {r["id"]: r for r in T.load_jsonl(a.round1)}
 items = [r1[i] for i in ids]
 done = {(r["id"], r["dir"], r["notch"], r["pushback"]) for r in T.load_jsonl(a.out)} if Path(a.out).exists() else set()
 
-lm = LM(cfg)
-ref = spec(cfg, "benevolence")           # 刻度的参照:仁慈的层、r_L、α_max
+lm = make_lm(cfg)
+ref = spec(cfg, a.ref)                   # 刻度的参照:层、r_L、α_max
 L = ref["layer"]
 dirs = T.load_directions(cfg, L)
 meta = {"layer": L, "r": ref["r"], "alpha_max": ref["alpha_max"], "prompts_version": T.PROMPTS_VERSION,
-        "cos_with_benevolence": {k: round(float(v @ dirs["benevolence"]), 4) for k, v in dirs.items()}}
+        "ref": a.ref, "cos_with_benevolence": {k: round(float(v @ dirs[a.ref]), 4) for k, v in dirs.items()}}
 Path(a.out + ".meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1))
 print(meta, flush=True)
 
@@ -73,7 +74,7 @@ with open(a.out, "a", encoding="utf-8") as f:
                 return h + (mu - (h.float() @ v.float()).unsqueeze(-1)).to(h.dtype) * v
             scale, edits = 0.0, {L: _fn}
         elif d == "zero":
-            scale, edits = 0.0, steer.make_edits([(L, 0.0 * dirs["benevolence"])])
+            scale, edits = 0.0, steer.make_edits([(L, 0.0 * dirs[a.ref])])
         elif d.startswith("orth:"):                   # "orth:A|B":方向 A 去掉沿 B 的分量,不拉回原长(按变短后的长度注入)
             na, nb = d[5:].split("|")
             v = dirs[na] - float(dirs[na] @ dirs[nb]) * dirs[nb]

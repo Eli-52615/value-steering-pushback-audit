@@ -79,7 +79,7 @@ def gen(lm, prompts: list[str], edits: dict | None, max_new: int, batch_size: in
     """greedy 生成;返回 (文本, 新 token 数)。新 token 数 == max_new 表示被截断。"""
     out: list[tuple[str, int]] = [None] * len(prompts)  # type: ignore
     order = sorted(range(len(prompts)), key=lambda i: len(prompts[i]))
-    eos = [i for i in {lm.tok.eos_token_id, lm.tok.convert_tokens_to_ids("<|im_end|>")} if i is not None]
+    eos = getattr(lm, "eos_ids", None) or [i for i in {lm.tok.eos_token_id, lm.tok.convert_tokens_to_ids("<|im_end|>")} if i is not None]
     with (lm.patch(edits) if edits else nullcontext()):
         for s in range(0, len(order), batch_size):
             idx = order[s:s + batch_size]
