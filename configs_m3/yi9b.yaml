@@ -1,0 +1,9 @@
+# 模型 3:Yi-1.5-9B-Chat(bf16,ModelScope 01ai/Yi-1.5-9B-Chat)。Llama 架构,ChatML 模板,结束符 <|im_end|>,和 Qwen 相同;不用兼容层。
+name: yi9b
+model_path: /root/autodl-tmp/models/yi-1.5-9b-chat
+sae_dir: /dev/null
+n_layers: 48
+d_model: 4096
+sae_width: 0
+sae_k: 0
+work_dir: /root/autodl-tmp/vt_work/yi9b
