@@ -34,11 +34,15 @@ items = [r1[i] for i in ids]
 done = {(r["id"], r["dir"], r["notch"], r["pushback"]) for r in T.load_jsonl(a.out)} if Path(a.out).exists() else set()
 
 lm = make_lm(cfg)
-ref = spec(cfg, a.ref)                   # 刻度的参照:层、r_L、α_max
-L = ref["layer"]
-dirs = T.load_directions(cfg, L)
-meta = {"layer": L, "r": ref["r"], "alpha_max": ref["alpha_max"], "prompts_version": T.PROMPTS_VERSION,
-        "ref": a.ref, "cos_with_benevolence": {k: round(float(v @ dirs[a.ref]), 4) for k, v in dirs.items()}}
+if all(d == "none" or d.startswith("sys:") for d, _ in plan["conds"]):   # 只有不调节/系统提示:不需要刻度参照(提取之前的预检用)
+    ref, L, dirs = None, None, {}
+    meta = {"layer": None, "prompts_version": T.PROMPTS_VERSION, "ref": None}
+else:
+    ref = spec(cfg, a.ref)                   # 刻度的参照:层、r_L、α_max
+    L = ref["layer"]
+    dirs = T.load_directions(cfg, L)
+    meta = {"layer": L, "r": ref["r"], "alpha_max": ref["alpha_max"], "prompts_version": T.PROMPTS_VERSION,
+            "ref": a.ref, "cos_with_benevolence": {k: round(float(v @ dirs[a.ref]), 4) for k, v in dirs.items()}}
 Path(a.out + ".meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1))
 print(meta, flush=True)
 
