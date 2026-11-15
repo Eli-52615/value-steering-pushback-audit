@@ -74,6 +74,12 @@ with open(a.out, "a", encoding="utf-8") as f:
             scale, edits = 0.0, {L: _fn}
         elif d == "zero":
             scale, edits = 0.0, steer.make_edits([(L, 0.0 * dirs["benevolence"])])
+        elif d.startswith("orth:"):                   # "orth:A|B":方向 A 去掉沿 B 的分量,不拉回原长(按变短后的长度注入)
+            na, nb = d[5:].split("|")
+            v = dirs[na] - float(dirs[na] @ dirs[nb]) * dirs[nb]
+            s0 = T.notch_scale(notch, ref)            # A 在这个档位原本的注入范数
+            scale, edits = s0 * float(v.norm()), steer.make_edits([(L, s0 * v)])
+            print(f"{d}: cos(A,B)={float(dirs[na] @ dirs[nb]):.4f} 剩余长度比={float(v.norm()):.4f} 与B余弦={float(v @ dirs[nb]):.2e} 注入范数={scale:.4f}", flush=True)
         else:
             scale = T.notch_scale(notch, ref) if d != "none" and not system else 0.0
             edits = steer.make_edits([(L, scale * dirs[d])]) if scale != 0 else None
