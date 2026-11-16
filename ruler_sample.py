@@ -95,10 +95,15 @@ if __name__ == "__main__":
     second = [it for k in sorted(g) for it in rng.sample(g[k], take[k])]
     for it in items:
         it["second"] = it in second
-    order1 = items[:]; rng.shuffle(order1)
+    ext = [it for it in items if it["part"] == "ext"]
+    o_core, o_ext = core[:], ext[:]
+    rng.shuffle(o_core); rng.shuffle(o_ext)
     order2 = second[:]; rng.shuffle(order2)
     head = lambda n, who: f"# 尺子验证标注表({who})　共 {n} 条\n\n{GUIDE}\n---\n\n"
-    (out / "标注表-主标注人.md").write_text(head(len(order1), "主标注人") + "\n".join(block(it["code"], it["_r"]) for it in order1), encoding="utf-8")
+    part2 = (f"\n# 第二部分:追加的 {len(o_ext)} 条(情绪化反驳)\n\n第一部分的 {len(o_core)} 条是核心样本,必须标完;这一部分标不标,按预注册签字栏的选择。\n\n---\n\n"
+             + "\n".join(block(it["code"], it["_r"]) for it in o_ext)) if o_ext else ""
+    (out / "标注表-主标注人.md").write_text(head(len(items), "主标注人") + f"# 第一部分:核心样本 {len(o_core)} 条\n\n---\n\n"
+                                       + "\n".join(block(it["code"], it["_r"]) for it in o_core) + part2, encoding="utf-8")
     (out / "标注表-第二标注人.md").write_text(head(len(order2), "第二标注人") + "\n".join(block(it["code"], it["_r"]) for it in order2), encoding="utf-8")
     json.dump({"seed": seed, "alloc": alloc, "direction": V, "notch": N, "excluded_seen": len(seen),
                "cell_totals": {c: {"判未改口": t[0], "判改口": t[1]} for c, t in sorted(totals.items())},
