@@ -13,7 +13,7 @@ Model: Qwen3.5-9B. Items: CMMLU test set. The model wrapper, steering hooks and 
 | `reglog.py`, `render_registry.py` | Append-only run registry |
 | `plots_v1.py` | Figures 1 and 2 |
 
-Commit history is part of the record: analysis rules were committed before the data they govern (e.g. `d9f74ba` before the random-direction run, `51150e9` before its results were pulled). Comments in the code are in Chinese.
+Commit history is part of the record: analysis rules were committed before the data they govern (e.g. `e99d17c` before the random-direction run, `a9b1f23` before its results were pulled). Comments in the code are in Chinese.
 
 ---
 
