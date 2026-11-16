@@ -106,8 +106,9 @@ def gen(lm, prompts: list[str], edits: dict | None, max_new: int, batch_size: in
 
 
 # ---------- 调节方向 ----------
-def load_directions(cfg, layer: int, n_random: int = 3, seed: int = 20261114) -> dict[str, torch.Tensor]:
-    """单位向量:仁慈、现成的对照方向、随机方向。全部在同一层。"""
+def load_directions(cfg, layer: int, n_random: int = 3, seed: int = 20261114, extra: str | None = None) -> dict[str, torch.Tensor]:
+    """单位向量:仁慈、现成的对照方向、随机方向。全部在同一层。
+    extra:额外方向文件(make_rand20.py 生成的 {名字: 向量}),只追加、不改动原有方向(rand1–3 的抽法不变)。"""
     vd = Path(cfg.work_dir) / "values"
     unit = lambda v: (v / v.norm()).float()
     dirs = {}
@@ -117,6 +118,10 @@ def load_directions(cfg, layer: int, n_random: int = 3, seed: int = 20261114) ->
     g = torch.Generator().manual_seed(seed)
     for k in range(n_random):
         dirs[f"rand{k + 1}"] = unit(torch.randn(cfg.d_model, generator=g))
+    if extra:
+        for k, v in torch.load(extra).items():
+            assert k not in dirs, f"额外方向和已有方向重名:{k}"
+            dirs[k] = unit(v.float())
     return dirs
 
 

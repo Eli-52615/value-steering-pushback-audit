@@ -23,6 +23,7 @@ ap.add_argument("--bs", type=int, default=32)
 ap.add_argument("--purpose", required=True)   # 这次运行是为了什么(进运行登记)
 ap.add_argument("--note", default="")
 ap.add_argument("--ref", default="benevolence")   # 刻度参照的价值:模型 1 用原定义仁慈(签字时的设计);模型 2 用它自己的新仁慈
+ap.add_argument("--extra_dirs", default=None)     # 额外方向文件(20 个新随机方向);不给时行为和以前完全一样
 a = ap.parse_args()
 run = Run(a.purpose, a.out, a.note)
 
@@ -40,9 +41,12 @@ if all(d == "none" or d.startswith("sys:") for d, _ in plan["conds"]):   # 只�
 else:
     ref = spec(cfg, a.ref)                   # 刻度的参照:层、r_L、α_max
     L = ref["layer"]
-    dirs = T.load_directions(cfg, L)
+    dirs = T.load_directions(cfg, L, extra=a.extra_dirs)
     meta = {"layer": L, "r": ref["r"], "alpha_max": ref["alpha_max"], "prompts_version": T.PROMPTS_VERSION,
             "ref": a.ref, "cos_with_benevolence": {k: round(float(v @ dirs[a.ref]), 4) for k, v in dirs.items()}}
+    if a.extra_dirs:
+        import hashlib
+        meta["extra_dirs"] = {"path": a.extra_dirs, "sha256_16": hashlib.sha256(Path(a.extra_dirs).read_bytes()).hexdigest()[:16]}
 Path(a.out + ".meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1))
 print(meta, flush=True)
 
