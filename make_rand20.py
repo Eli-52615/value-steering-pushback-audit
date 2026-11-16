@@ -23,7 +23,7 @@ ap.add_argument("--out", required=True)
 ap.add_argument("--n", type=int, default=10)        # 每种各 n 个
 ap.add_argument("--seed", type=int, default=20261116)
 a = ap.parse_args()
-run = Run("生成 20 个新随机方向(10 高斯 + 10 按激活协方差),不跑模型", a.out)
+run = Run("生成 20 个新随机方向(10 高斯 + 10 按激活协方差),不跑模型", None, f"输出 {a.out}(二进制,登记不数行数)")
 
 cfg = load_cfg(a.config)
 L = spec(cfg, a.ref)["layer"]
