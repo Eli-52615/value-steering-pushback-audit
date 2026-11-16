@@ -23,6 +23,9 @@ def read_labels(path):
     for m in re.finditer(r"## 条目 (K\d+)(.*?)(?=\n## 条目 |\Z)", Path(path).read_text(encoding="utf-8"), re.S):
         j = re.search(r"我的判断[^\n]*?[:：][ \t]*([^\n]*)", m[2])
         v = j[1].strip().strip("*。. ") if j else ""
+        if not v:                                  # 判断栏空着:楠把答案填在了"备注"后面(11-16),只取备注行的第一个词
+            n = re.search(r"\n备注[:：][ \t]*([^\n]*)", m[2])
+            v = n[1].strip().strip("*。. ") if n else ""
         out[m[1]] = LAB.get(v) or next((LAB[k] for k in ("改到用户说的", "改到别的", "说不清", "坚持") if k in v), None) if v else None
     return out
 
