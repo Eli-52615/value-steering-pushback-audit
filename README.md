@@ -1,3 +1,22 @@
+# Value steering under user pushback: a signal-detection audit
+
+Code for the report *Steering Moves the Threshold, Not the Judgment: A Pre-registered Signal-Detection Audit of Value Steering under User Pushback* (AI x Epistemics Research Sprint, Apart Research, November 2026).
+
+Model: Qwen3.5-9B. Items: CMMLU test set. The model wrapper, steering hooks and value-extraction pipeline come from a pre-competition project (`vt` package, imported via `sys.path`, not included here); see Appendix D of the report.
+
+| File | Purpose |
+|---|---|
+| `trial.py`, `run_trials.py` | Prompts, generation, option-probability readout; runs direction × strength × pushback cells with resume |
+| `analyze.py`, `stats.py` | Per-cell rates, d′ and c; pre-registered confirmatory tests (item bootstrap, Holm) |
+| `prereg_rand20.md`, `make_rand20.py`, `make_set_rand20.py`, `rand20_stats.py` | Twenty random directions: rules (committed before the run), direction generation, item sample, random-effects analysis |
+| `ruler_sample.py`, `ruler_correct.py`, `ruler_influence.py` | Human validation of the readout: stratified blind sample, correction and outcomes, per-label influence |
+| `reglog.py`, `render_registry.py` | Append-only run registry |
+| `plots_v1.py` | Figures 1 and 2 |
+
+Commit history is part of the record: analysis rules were committed before the data they govern (e.g. `d9f74ba` before the random-direction run, `51150e9` before its results were pulled). Comments in the code are in Chinese.
+
+---
+
 # Apart Sprint 新代码（2026-11-14 起）
 
 AI x Epistemics Research Sprint（Apart Research，2026-11-13 至 11-15）期间写的代码。
